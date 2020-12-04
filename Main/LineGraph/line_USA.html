@@ -158,7 +158,7 @@ var	svg = d3.select("body")
 		.attr("transform", "translate(" + margin.left + "," + margin.top + ")");
  
 // Get the data
-d3.csv("data1/USA_bar.csv", function(error, data) {
+d3.csv("../data1/USA_bar.csv", function(error, data) {
 	data.forEach(function(d) {
         console.log(data)
     	d.title_year = +d.title_year;

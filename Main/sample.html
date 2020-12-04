@@ -143,10 +143,10 @@
             main();
         });
     });
-    let dataset = d3.csv("data1/final_count.csv")
-    let countries_point = d3.csv("data1/countries_lat_long.csv")
+    let dataset = d3.csv("../data1/final_count.csv")
+    let countries_point = d3.csv("../data1/countries_lat_long.csv")
     // source 2: US Census Counties geojson
-    let geojson = d3.json("data1/detailed_topo.json");
+    let geojson = d3.json("../data1/detailed_topo.json");
     let projection = d3.geoEquirectangular()
         .scale(200).translate([400, 350])
 

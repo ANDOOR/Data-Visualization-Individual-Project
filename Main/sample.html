@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <title>Worldwide Movies</title>
+        <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css"
+              integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+    
+        <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"
+                integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo"
+                crossorigin="anonymous"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"
+                integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1"
+                crossorigin="anonymous"></script>
+        <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"
+                integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM"
+                crossorigin="anonymous"></script>
+    
+        <script src="https://d3js.org/d3.v6.min.js"></script>
+        <script src="https://d3js.org/topojson.v2.min.js"></script>
+        <style>
+            .tooltipData {
+                font-size: small;
+            }
+    
+            #tooltip {
+                opacity: 0;
+                background-color: #f5f3f0;
+                position: absolute;
+                font-family: sans-serif;
+                font-size: medium;
+                width: 160px;
+                height: 100px;
+            }
+    
+            #caption {
+                margin: auto;
+                padding-top: 1%;
+                padding-bottom: 1%;
+                padding-left: 4%;
+                font-family: serif;
+                font-size: 20pt;
+            }
+    
+            #container {
+                width: 90vw;
+                height: 80vh;
+            }
+    
+            #canvas {
+                width: 90vw;
+                height: 80vh;
+                background-color: #fffefe;
+            }
+    
+    
+            .sidenav {
+                height: 100%;
+                width: 0;
+                position: fixed;
+                z-index: 1;
+                top: 0;
+                left: 0;
+                background-color: #111;
+                overflow-x: hidden;
+                transition: 0.5s;
+                padding-top: 60px;
+            }
+    
+            .sidenav a {
+                padding: 8px 8px 8px 32px;
+                text-decoration: none;
+                font-size: 25px;
+                color: #818181;
+                display: block;
+                transition: 0.3s;
+            }
+    
+            .sidenav a:hover {
+                color: #f1f1f1;
+            }
+    
+            .sidenav .closebtn {
+                position: absolute;
+                top: 0;
+                right: 25px;
+                font-size: 36px;
+                margin-left: 50px;
+            }
+    
+            @media screen and (max-height: 450px) {
+                .sidenav {padding-top: 15px;}
+                .sidenav a {font-size: 18px;}
+            }
+    
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <h1>Word Cloud</h1>
+            <nav class="navbar navbar-expand-lg navbar-light bg-dark">
+      
+                <div class="collapse navbar-collapse" >
+                  
+                  <div class="nav navbar-nav">
+                      
+                      <a class="nav-item nav-link active" href="sample.html" style="color: white;">World Map<span class="sr-only">(current)</span></a>
+                      <a class="nav-item nav-link" href="index.html" style="color: white;">Word Cloud </a>
+                      <a class="nav-item nav-link" href="linemap.html" style="color: white;">Gross Vs Budget</a>
+                      <a class="nav-item nav-link" href="imdb.html" style="color: white;">IMDB Score Dependency</a>
+                  </div>
+                </div>
+            </nav>
+        
+        
+        
+        <div class="d-flex justify-content-center my-4">
+            <div class="w-50">
+                <label for="year">Year</label>
+                <input type="range" class="custom-range" id="year" min="1916" max="2016" name="year" value="2016">
+            </div>
+            <span class="font-weight-bold text-primary ml-2 valueSpan2"></span>
+        </div>
+        <svg id="canvas" width="100vw" height="60vh" viewBox="0 0 700 800">
+           
+        </svg>
+        
+        
+        <div id="tooltip"></div>
+        <div class="container">
+        
+        </div>
+        <script>
+            var year = 2016;
+    $(document).ready(function () {
+
+        const $valueSpan = $('.valueSpan2');
+        const $value = $('#year');
+        $valueSpan.html($value.val());
+        $value.on('input change', () => {
+            window.year = $value.val();
+            $valueSpan.html($value.val());
+            main();
+        });
+    });
+    let dataset = d3.csv("data1/final_count.csv")
+    let countries_point = d3.csv("data1/countries_lat_long.csv")
+    // source 2: US Census Counties geojson
+    let geojson = d3.json("data1/detailed_topo.json");
+    let projection = d3.geoEquirectangular()
+        .scale(200).translate([400, 350])
+
+    let line_width = d3.scaleLog().range([0.5,4])
+    let radius = d3.scaleSqrt()
+        .domain([0, 100])
+        .range([0, 14]);
+
+    let path = d3.geoPath()
+        .projection(projection)
+        .pointRadius(2.5)
+
+    function main(){
+        Promise.all(
+            [
+                geojson,
+                dataset,
+                countries_point
+            ]
+            , d3.autoType()).then(plot_map)
+
+            function plot_map(data) {
+            //let geoJson = topojson.feature(data[0], data[0].objects.countries_geo).features;
+            let geoJson = topojson.feature(data[0], data[0].objects.custom).features;
+            //console.log(topojson.feature(data[0], data[0].objects.custom).features)
+            let geo_generator = d3.geoPath().projection(projection);
+            let lat_long = {}
+            d3.map(data[2], function (d) {
+                lat_long[d.country] =
+                    {lat: d.latitude, long: d.longitude}
+            })
+
+            let dataset = data[1];
+            dataset = dataset.filter(function (d) {
+                return d['Year'] == year;
+            })
+            /*d3.map(data[1], function (d) {
+                try {
+
+                    if (indexData[d.Code] == undefined) {
+                     indexData[d.Code] =
+                        {name: d.country, year: [], count_col: []}
+                    }
+
+                    indexData[d.Code]['year'].push(+d.title_year)
+                     indexData[d.Code]['count_col'].push(+d.count_col)
+//indexData[d.Code]['spi'].push(+d.Social_Progress_Index)
+                     } catch (error) {
+                    console.log(error)
+                    }
+            })
+            */
+            
+            let link = {};
+            let trade_details = new Map();
+            let amount = [];
+            dataset.forEach(function (d) {
+                amount.push(parseFloat(d['count_col']))
+
+            let value = trade_details.get(d['Code']);
+                if (value === undefined) {
+                    value = {name: d['country'], Movie_count:0};
+                }
+                value.Movie_count = +d.count_col
+            trade_details.set(d['Code'], value);
+
+            })
+            //line_width.domain(d3.extent(amount))
+            let domain = d3.extent(trade_details, function (d) {
+                return d.count_col;
+                
+            })
+            
+            let log_values = d3.scaleLog().domain(domain).range([0, 100]);
+
+            let colorScale = d3.scaleLinear()
+                .domain([0, 100])
+                .range(["yellow", "darkred"])
+                .interpolate(d3.interpolateCubehelix.gamma(10));
+                let svg = d3.select('#canvas')
+
+let mapCanvas = svg.append('g')
+mapCanvas.selectAll("path")
+    .data(geoJson)
+    .enter().append("path")
+    .style("fill", function (d) {
+        
+        let detail = trade_details.get(d.properties.iso_a3);
+                    if (detail === undefined) {
+                        return 'lightgrey'
+                    }
+                    return colorScale(log_values(detail.Movie_count))
+                    
+                                  
+    })
+    .attr("d", geo_generator)
+    .style("stroke", "#fff")
+    // .style("stroke-width", 0)
+    
+            
+            }
+    }main()
+        </script>
+    </body>
+</html>

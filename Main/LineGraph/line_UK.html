@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <title>Bootstrap Example</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css">
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/js/bootstrap.min.js"></script>
+</head>
+<meta charset="utf-8">
+<style> /* set the CSS */
+ 
+body { font: 12px Arial;}
+ 
+path { 
+  
+  stroke-width: 2;
+  fill: none;
+}
+ 
+.axis path,
+.axis line {
+	fill: none;
+	stroke: grey;
+	stroke-width: 1;
+	shape-rendering: crispEdges;
+}
+
+div.tooltip {	
+    position: absolute;			
+    text-align: center;			
+    width: 60px;					
+    height: 28px;					
+    padding: 2px;				
+    font: 12px sans-serif;		
+    background: lightsteelblue;	
+    border: 0px;		
+    border-radius: 8px;			
+    pointer-events: none;			
+}
+.column {
+  float: left;
+  width: 50%;
+  padding: 5px;
+}
+
+/* Clearfix (clear floats) */
+.row::after {
+  content: "";
+  clear: both;
+  display: table;
+}
+.button {
+  background-color: #3625cf; /* Green */
+  border: none;
+  color: white;
+  padding: 20px;
+  text-align: center;
+  text-decoration: none;
+  display: inline-block;
+  font-size: 16px;
+  margin: 4px 2px;
+  cursor: pointer;
+}
+.button1 {border-radius: 12px;}
+.button2 {border-radius: 12px;}
+.country-name {
+    margin: 0 !important;
+}
+.key-dot {
+    display: inline-block;
+    height: 10px;
+    margin-right: .5em;
+    width: 10px;
+    align-content:center;
+}
+
+.queens { background: #1F77B4;}
+.kings { background: red;}
+.germany { background: #2CA02C;
+}
+
+#legend2{
+    overflow:hidden;
+}
+.legend2 {
+    float:center;
+    margin-right: 1em;
+    align-content: center;
+}
+.center {
+  margin: auto;
+  width: 90%;
+  position: absolute;
+  left: 75%;
+  padding: 50px;
+}
+</style>
+<body>
+    <div class="center">
+	  
+        <div class="legend2"> <p class="country-name"><span class="key-dot queens"></span>Gross</p> </div>
+        <div class="legend2"> <p class="country-name"><span class="key-dot kings"></span>Budget</p> </div>
+        
+     </div>
+<!-- load the d3.js library -->	
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.17/d3.min.js"></script>
+<script src="https://d3js.org/d3.v4.min.js"></script>
+<script src="https://d3js.org/d3-scale-chromatic.v1.min.js"></script>
+<script src="https://d3js.org/d3-geo-projection.v2.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3-legend/2.24.0/d3-legend.js"></script>
+
+<script>
+ 
+// Set the dimensions of the canvas / graph
+var	margin = {top: 30, right: 10, bottom: 30, left: 90},
+	width = 800 - margin.left - margin.right,
+	height = 300 - margin.top - margin.bottom;
+ 
+// Parse the date / time
+//var	parseDate = d3.time.format("%y").parse;
+ 
+// Set the ranges
+var	x = d3.scaleBand().range([0, width]);
+var	y = d3.scaleLinear().range([height, 0]);
+
+//x.domain(d3.extent(data, function(d) { return d.title_year; }));
+// Define the axes
+var	xAxis = d3.svg.axis().scale(x)
+	.orient("bottom").ticks(5);
+ 
+var	yAxis = d3.svg.axis().scale(y)
+    .orient("left").ticks(5).tickFormat(function(d) { return formatValue(d)});
+var div = d3.select("body").append("div")	
+    .attr("class", "tooltip")				
+    .style("opacity", 0); 
+
+ 
+// Define the line
+var	grossline = d3.svg.line()
+	.x(function(d) { return x(d.title_year); })
+	.y(function(d) { return y(d.gross); });
+
+var budgetline = d3.svg.line()
+	.x(function(d){return x(d.title_year);})
+	.y(function(d) { return y(d.budget); });
+
+    
+// Adds the svg canvas
+var	svg = d3.select("body")
+	.append("svg")
+		.attr("width", width + margin.left + margin.right)
+		.attr("height", height + margin.top + margin.bottom)
+	.append("g")
+		.attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+ 
+// Get the data
+d3.csv("data1/UK_bar.csv", function(error, data) {
+	data.forEach(function(d) {
+        console.log(data)
+    	d.title_year = +d.title_year;
+        d.gross = +d.gross;
+		d.budget = +d.budget;
+        //console.log(typeof(d.gross))
+	});
+    //console.log(typeof(data.gross))
+	// Scale the range of the data
+	//x.domain(d3.extent(data, function(d) { return d.title_year; }));
+    x.domain(data.map(function(d){return d.title_year;}));
+    //y.domain([0, d3.max(data, function(d) { return +d.gross; })
+			//]);
+	y.domain([0, d3.max(data, function(d) {
+	  				return Math.max(d.gross, d.budget); })]);
+    
+	// Add the valueline path.
+	svg.append("path")	
+        .attr("class", "line")
+        .data([data])
+		.style("stroke","blue")
+		.attr("d", grossline);
+
+	svg.append("path")	
+        .attr("class", "line")
+        .data([data])
+		.style("stroke","red")
+		.attr("d", budgetline);
+		
+	
+		
+        //console.log(valueline(data))
+ 
+	// Add the X Axis
+	svg.append("g")		
+		.attr("class", "x axis")
+		.attr("transform", "translate(0," + height + ")")
+        .call(d3.axisBottom().scale(x).ticks(5))
+        .selectAll("text")	
+        .style("text-anchor", "end")
+        .attr("dx", "-.8em")
+        .attr("dy", ".15em")
+        .attr("transform", "rotate(-65)");
+ 
+	// Add the Y Axis
+	svg.append("g")		
+		.attr("class", "y axis")
+		
+		.call(d3.axisLeft(y).tickFormat(d3.format(".0s")))
+            .append("text")
+            .attr("transform", "rotate(-90)")
+            .attr("x", 0 - (height / 2))
+            .attr("y", 10 - margin.left)
+            .attr("dy", "0.32em")
+            .attr("fill", "#000")
+            .attr("font-weight", "bold")
+            .attr("text-anchor", "middle")
+            .text("In Millions");
+
+
+	
+ 
+});
+ 
+</script>
+
+
+ 
+</body>
+</html>
